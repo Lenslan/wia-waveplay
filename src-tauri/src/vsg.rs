@@ -60,6 +60,7 @@ impl VsgInstrument {
     }
 
     /// Activate arb playback: select waveform, enable RF output, modulation, and arb state.
+    /// Plays the waveform continuously (infinite loop).
     pub fn play(&mut self, wfm_id: &str) -> Result<(), String> {
         self.client
             .write_cmd(&format!("radio:arb:waveform \"WFM1:{}\"", wfm_id))?;
@@ -67,6 +68,26 @@ impl VsgInstrument {
         self.client.write_cmd("output:modulation 1")?;
         self.client.write_cmd("radio:arb:state 1")?;
         self.client.err_check()
+    }
+
+    /// Activate arb playback with a finite repeat count.
+    ///
+    /// `count` is the number of times to play the waveform.
+    ///
+    /// TODO: Implement finite repeat count via SCPI commands.
+    /// Possible SCPI commands to investigate:
+    ///   - `radio:arb:trigger:type:continuous` vs `single`
+    ///   - `radio:arb:count <n>`
+    ///   - `radio:arb:retrigger:count <n>`
+    ///   - Refer to Keysight X-Series Signal Generators Programming Guide
+    ///     for the exact commands supported by the target instrument model.
+    pub fn play_with_repeat(&mut self, wfm_id: &str, _count: u32) -> Result<(), String> {
+        // TODO: Send SCPI commands to configure finite repeat count, e.g.:
+        // self.client.write_cmd("radio:arb:trigger:type single")?;
+        // self.client.write_cmd(&format!("radio:arb:count {}", _count))?;
+
+        // Fallback: play continuously until the finite-repeat SCPI is implemented
+        self.play(wfm_id)
     }
 
     /// Stop playback: disable RF output, modulation, and arb state.

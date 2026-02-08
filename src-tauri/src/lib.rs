@@ -52,7 +52,26 @@ fn load_waveform(file_path: String, state: State<Mutex<AppState>>) -> Result<Wav
 }
 
 #[tauri::command]
-fn play_waveform(cf: f64, fs: f64, amp: f64, state: State<Mutex<AppState>>) -> Result<(), String> {
+fn export_waveform(file_path: String, state: State<Mutex<AppState>>) -> Result<(), String> {
+    let app_state = state.lock().map_err(|e| format!("Lock failed: {}", e))?;
+
+    let wfm_data = app_state
+        .wfm_data
+        .as_ref()
+        .ok_or("No waveform data to export")?;
+
+    std::fs::write(&file_path, wfm_data)
+        .map_err(|e| format!("Failed to write file: {}", e))
+}
+
+#[tauri::command]
+fn play_waveform(
+    cf: f64,
+    fs: f64,
+    amp: f64,
+    repeat_count: u32,
+    state: State<Mutex<AppState>>,
+) -> Result<(), String> {
     let mut app_state = state.lock().map_err(|e| format!("Lock failed: {}", e))?;
 
     if app_state.vsg.is_none() {
@@ -66,7 +85,12 @@ fn play_waveform(cf: f64, fs: f64, amp: f64, state: State<Mutex<AppState>>) -> R
     let vsg = app_state.vsg.as_mut().unwrap();
     vsg.configure(cf, fs, amp)?;
     vsg.download_wfm(&wfm_data, "waveform")?;
-    vsg.play("waveform")?;
+
+    if repeat_count > 0 {
+        vsg.play_with_repeat("waveform", repeat_count)?;
+    } else {
+        vsg.play("waveform")?;
+    }
 
     Ok(())
 }
@@ -95,6 +119,7 @@ pub fn run() {
             connect_instrument,
             disconnect_instrument,
             load_waveform,
+            export_waveform,
             play_waveform,
             stop_waveform,
         ])

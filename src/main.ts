@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 
 let ipInput: HTMLInputElement;
 let connectBtn: HTMLButtonElement;
@@ -7,15 +7,19 @@ let disconnectBtn: HTMLButtonElement;
 let connectionStatus: HTMLElement;
 let fileNameLabel: HTMLElement;
 let browseBtn: HTMLButtonElement;
+let exportBtn: HTMLButtonElement;
 let cfInput: HTMLInputElement;
 let fsInput: HTMLInputElement;
 let ampInput: HTMLInputElement;
 let playBtn: HTMLButtonElement;
 let stopBtn: HTMLButtonElement;
+let repeatCheck: HTMLInputElement;
+let repeatCountInput: HTMLInputElement;
 let logArea: HTMLElement;
 
 let isConnected = false;
 let wfmLoaded = false;
+let isMatSource = false;
 
 interface WaveformInfo {
   file_name: string;
@@ -38,6 +42,7 @@ function updateUI() {
   ipInput.disabled = isConnected;
   playBtn.disabled = !isConnected || !wfmLoaded;
   stopBtn.disabled = !isConnected;
+  exportBtn.disabled = !wfmLoaded || !isMatSource;
 }
 
 async function connect() {
@@ -83,6 +88,7 @@ async function browse() {
   const selected = await open({
     multiple: false,
     filters: [
+      { name: "MATLAB Files", extensions: ["mat"] },
       { name: "Waveform Files", extensions: ["WAVEFORM", "waveform"] },
       { name: "All Files", extensions: ["*"] },
     ],
@@ -92,6 +98,7 @@ async function browse() {
 
   const filePath = selected as string;
   const fileName = filePath.split(/[/\\]/).pop() || filePath;
+  isMatSource = fileName.toLowerCase().endsWith(".mat");
   fileNameLabel.textContent = fileName;
   log(`Loading file: ${fileName}...`);
 
@@ -103,6 +110,32 @@ async function browse() {
     log(`Failed to load waveform: ${e}`, "error");
     fileNameLabel.textContent = "No file selected";
     wfmLoaded = false;
+    isMatSource = false;
+  }
+
+  updateUI();
+}
+
+async function exportWaveform() {
+  const defaultName = (fileNameLabel.textContent || "waveform").replace(/\.mat$/i, ".WAVEFORM");
+  const savePath = await save({
+    defaultPath: defaultName,
+    filters: [
+      { name: "Waveform Files", extensions: ["WAVEFORM"] },
+    ],
+  });
+
+  if (!savePath) return;
+
+  exportBtn.disabled = true;
+  log("Exporting waveform...");
+
+  try {
+    await invoke("export_waveform", { filePath: savePath });
+    const savedName = savePath.split(/[/\\]/).pop() || savePath;
+    log(`Exported: ${savedName}`, "success");
+  } catch (e) {
+    log(`Export failed: ${e}`, "error");
   }
 
   updateUI();
@@ -118,11 +151,14 @@ async function play() {
     return;
   }
 
+  const repeatCount = repeatCheck.checked ? parseInt(repeatCountInput.value, 10) || 1 : 0;
+
   playBtn.disabled = true;
-  log(`Playing waveform (CF=${cfInput.value} MHz, FS=${fsInput.value} MHz, Power=${ampInput.value} dBm)...`);
+  const repeatInfo = repeatCount > 0 ? `Repeat=${repeatCount}` : "Continuous";
+  log(`Playing waveform (CF=${cfInput.value} MHz, FS=${fsInput.value} MHz, Power=${ampInput.value} dBm, ${repeatInfo})...`);
 
   try {
-    await invoke("play_waveform", { cf, fs, amp });
+    await invoke("play_waveform", { cf, fs, amp, repeatCount });
     log("Waveform playing", "success");
   } catch (e) {
     log(`Play failed: ${e}`, "error");
@@ -152,18 +188,25 @@ window.addEventListener("DOMContentLoaded", () => {
   connectionStatus = document.querySelector("#connection-status")!;
   fileNameLabel = document.querySelector("#file-name")!;
   browseBtn = document.querySelector("#browse-btn")!;
+  exportBtn = document.querySelector("#export-btn")!;
   cfInput = document.querySelector("#cf-input")!;
   fsInput = document.querySelector("#fs-input")!;
   ampInput = document.querySelector("#amp-input")!;
   playBtn = document.querySelector("#play-btn")!;
   stopBtn = document.querySelector("#stop-btn")!;
+  repeatCheck = document.querySelector("#repeat-check")!;
+  repeatCountInput = document.querySelector("#repeat-count")!;
   logArea = document.querySelector("#log-area")!;
 
   connectBtn.addEventListener("click", connect);
   disconnectBtn.addEventListener("click", disconnect);
   browseBtn.addEventListener("click", browse);
+  exportBtn.addEventListener("click", exportWaveform);
   playBtn.addEventListener("click", play);
   stopBtn.addEventListener("click", stop);
+  repeatCheck.addEventListener("change", () => {
+    repeatCountInput.disabled = !repeatCheck.checked;
+  });
 
   updateUI();
   log("Application ready");

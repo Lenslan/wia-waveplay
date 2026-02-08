@@ -1,68 +1,121 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="stylesheet" href="/src/styles.css" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WIA WavePlay</title>
-    <script type="module" src="/src/main.ts" defer></script>
-  </head>
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="stylesheet" href="/src/styles.css" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>WIA WavePlay</title>
+        <script type="module" src="/src/main.ts" defer></script>
+    </head>
 
-  <body>
-    <main class="container">
-      <header>
-        <h1>WIA WavePlay</h1>
-        <p class="subtitle">Keysight Signal Generator Controller</p>
-      </header>
+    <body>
+        <main class="container">
+            <header>
+                <h1>WIA WavePlay</h1>
+                <span class="subtitle">Keysight VSG N5182B Controller</span>
+            </header>
 
-      <!-- Connection -->
-      <section class="section">
-        <h2>Connection</h2>
-        <div class="form-row">
-          <input type="text" id="ip-input" placeholder="IP Address (e.g. 192.168.1.100)" value="192.168.1.100" />
-          <button id="connect-btn">Connect</button>
-          <button id="disconnect-btn" disabled>Disconnect</button>
-        </div>
-        <div id="connection-status" class="status">Not connected</div>
-      </section>
+            <!-- Connection + Waveform side by side -->
+            <div class="top-row">
+                <section class="section">
+                    <h2>Connection</h2>
+                    <div class="form-row">
+                        <input
+                            type="text"
+                            id="ip-input"
+                            placeholder="IP Address"
+                            value="192.168.1.100"
+                        />
+                        <button id="connect-btn">Connect</button>
+                        <button id="disconnect-btn" disabled>Disconnect</button>
+                    </div>
+                    <div id="connection-status" class="status">
+                        Not connected
+                    </div>
+                </section>
 
-      <!-- Waveform File -->
-      <section class="section">
-        <h2>Waveform File</h2>
-        <div class="form-row">
-          <span id="file-name" class="file-label">No file selected</span>
-          <button id="browse-btn">Browse...</button>
-        </div>
-      </section>
+                <section class="section">
+                    <h2>Waveform File</h2>
+                    <div class="form-row">
+                        <span id="file-name" class="file-label"
+                            >No file selected</span
+                        >
+                        <button id="browse-btn">Browse...</button>
+                        <button id="export-btn" disabled>Export</button>
+                    </div>
+                </section>
+            </div>
 
-      <!-- Configuration -->
-      <section class="section">
-        <h2>Configuration</h2>
-        <div class="form-grid">
-          <label for="cf-input">Carrier Frequency (MHz)</label>
-          <input type="number" id="cf-input" value="200" step="0.1" min="0" />
+            <!-- Configuration: 3 columns in one row -->
+            <section class="section">
+                <h2>Configuration</h2>
+                <div class="config-row">
+                    <div class="config-item">
+                        <label for="cf-input">Carrier Frequency (MHz)</label>
+                        <input
+                            type="number"
+                            id="cf-input"
+                            value="2412"
+                            step="0.1"
+                            min="0"
+                        />
+                    </div>
+                    <div class="config-item">
+                        <label for="fs-input">Sample Rate (MHz)</label>
+                        <input
+                            type="number"
+                            id="fs-input"
+                            value="40"
+                            step="0.1"
+                            min="0"
+                        />
+                    </div>
+                    <div class="config-item">
+                        <label for="amp-input">Output Power (dBm)</label>
+                        <input
+                            type="number"
+                            id="amp-input"
+                            value="-20"
+                            step="0.1"
+                        />
+                    </div>
+                </div>
+            </section>
 
-          <label for="fs-input">Sample Rate (MHz)</label>
-          <input type="number" id="fs-input" value="40" step="0.1" min="0" />
+            <!-- Control -->
+            <section class="section">
+                <div class="repeat-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="repeat-check" />
+                        <span>Limit repeats</span>
+                    </label>
+                    <input
+                        type="number"
+                        id="repeat-count"
+                        value="1000"
+                        min="1"
+                        step="1"
+                        disabled
+                    />
+                    <span class="repeat-hint"
+                        >times (unchecked = continuous)</span
+                    >
+                </div>
+                <div class="control-row">
+                    <button id="play-btn" class="btn-play" disabled>
+                        &#9654; Play
+                    </button>
+                    <button id="stop-btn" class="btn-stop" disabled>
+                        &#9632; Stop
+                    </button>
+                </div>
+            </section>
 
-          <label for="amp-input">Output Power (dBm)</label>
-          <input type="number" id="amp-input" value="-4" step="0.1" />
-        </div>
-      </section>
-
-      <!-- Control -->
-      <section class="section">
-        <div class="control-row">
-          <button id="play-btn" class="btn-play" disabled>&#9654; Play</button>
-          <button id="stop-btn" class="btn-stop" disabled>&#9632; Stop</button>
-        </div>
-      </section>
-
-      <!-- Log -->
-      <section class="section">
-        <h2>Log</h2>
-        <div id="log-area" class="log-area"></div>
-      </section>
-    </main>
-  </body>
+            <!-- Log -->
+            <section class="section section-log">
+                <h2>Log</h2>
+                <div id="log-area" class="log-area"></div>
+            </section>
+        </main>
+    </body>
 </html>
