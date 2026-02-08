@@ -22,7 +22,7 @@ fn connect_instrument(ip: String, state: State<Mutex<AppState>>) -> Result<Strin
     }
     app_state.vsg = None;
 
-    let vsg = VsgInstrument::connect(&ip, 10, true)?;
+    let vsg = VsgInstrument::connect(&ip, 3, true)?;
     let inst_id = vsg.inst_id.clone();
     app_state.vsg = Some(vsg);
 
