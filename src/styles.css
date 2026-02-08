@@ -119,10 +119,96 @@ h1 {
 }
 
 .config-item label {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
   font-size: 0.85rem;
   color: #666;
   margin-bottom: 0.2rem;
+}
+
+/* Config item needs relative positioning for popup */
+.config-item {
+  position: relative;
+}
+
+/* Help icon */
+.help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #1a73e8;
+  border: 1px solid #1a73e8;
+  border-radius: 50%;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.help-icon:hover {
+  background: #e8f0fe;
+}
+
+/* Channel popup */
+.channel-popup {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  margin-top: 0.3rem;
+  background: #fff;
+  border: 1px solid #d0d5dd;
+  border-radius: 0.4rem;
+  box-shadow: 0 0.3rem 1rem rgba(0, 0, 0, 0.15);
+  padding: 0.6rem 0.75rem;
+  width: max-content;
+  max-height: 22rem;
+  overflow-y: auto;
+}
+
+.channel-popup.show {
+  display: block;
+}
+
+.channel-popup-content {
+  display: flex;
+  gap: 1rem;
+}
+
+.channel-group h4 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1a73e8;
+  margin-bottom: 0.3rem;
+  white-space: nowrap;
+}
+
+.channel-group table {
+  border-collapse: collapse;
+  font-size: 0.77rem;
+}
+
+.channel-group th {
+  font-weight: 600;
+  color: #999;
+  text-align: left;
+  padding: 0.1rem 0.5rem 0.2rem 0;
+  border-bottom: 1px solid #e0e4ea;
+}
+
+.channel-group td {
+  padding: 0.1rem 0.5rem 0.1rem 0;
+  color: #333;
+  cursor: pointer;
+}
+
+.channel-group tr:hover td {
+  background: #e8f0fe;
 }
 
 /* Inputs */

@@ -14,8 +14,8 @@
     "windows": [
       {
         "title": "WIA WavePlay",
-        "width": 800,
-        "height": 480
+        "width": 1100,
+        "height": 660
       }
     ],
     "security": {

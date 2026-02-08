@@ -208,6 +208,35 @@ window.addEventListener("DOMContentLoaded", () => {
     repeatCountInput.disabled = !repeatCheck.checked;
   });
 
+  // Channel help popup
+  const channelHelp = document.querySelector("#channel-help")!;
+  const channelPopup = document.querySelector("#channel-popup")!;
+
+  channelHelp.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    channelPopup.classList.toggle("show");
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!channelPopup.contains(e.target as Node)) {
+      channelPopup.classList.remove("show");
+    }
+  });
+
+  // Click a table row to fill the frequency
+  channelPopup.addEventListener("click", (e) => {
+    const td = (e.target as HTMLElement).closest("td");
+    if (!td) return;
+    const tr = td.closest("tr");
+    if (!tr) return;
+    const firstTd = tr.querySelector("td");
+    if (firstTd) {
+      cfInput.value = firstTd.textContent!.trim();
+      channelPopup.classList.remove("show");
+    }
+  });
+
   updateUI();
   log("Application ready");
 });
