@@ -42,8 +42,8 @@ fn disconnect_instrument(state: State<Mutex<AppState>>) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn load_waveform(file_path: String, state: State<Mutex<AppState>>) -> Result<WaveformInfo, String> {
-    let (data, info) = waveform::load_waveform_file(&file_path)?;
+fn load_waveform(file_path: String, bw_mhz: usize, frame_interval_us: usize, state: State<Mutex<AppState>>) -> Result<WaveformInfo, String> {
+    let (data, info) = waveform::load_waveform_file(&file_path, bw_mhz, frame_interval_us)?;
 
     let mut app_state = state.lock().map_err(|e| format!("Lock failed: {}", e))?;
     app_state.wfm_data = Some(data);
@@ -67,7 +67,7 @@ fn export_waveform(file_path: String, state: State<Mutex<AppState>>) -> Result<(
 #[tauri::command]
 fn play_waveform(
     cf: f64,
-    fs: f64,
+    bw_mhz: f64,
     amp: f64,
     repeat_count: u32,
     state: State<Mutex<AppState>>,
@@ -82,6 +82,7 @@ fn play_waveform(
         .clone()
         .ok_or("No waveform file loaded")?;
 
+    let fs = bw_mhz * 2.0 * 1e6;
     let vsg = app_state.vsg.as_mut().unwrap();
     vsg.configure(cf, fs, amp)?;
     vsg.download_wfm(&wfm_data, "waveform")?;

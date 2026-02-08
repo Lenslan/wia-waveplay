@@ -4,8 +4,6 @@ use matfile::{MatFile, NumericData};
 
 const GRAN: usize = 2;
 const MIN_LEN: usize = 60;
-const BW_MHZ: usize = 20;
-const FRAME_INTERVAL_US: usize = 30;
 
 #[derive(serde::Serialize, Clone)]
 pub struct WaveformInfo {
@@ -15,7 +13,7 @@ pub struct WaveformInfo {
 }
 
 /// Load a waveform file. Dispatches by extension: .mat or .WAVEFORM.
-pub fn load_waveform_file(file_path: &str) -> Result<(Vec<u8>, WaveformInfo), String> {
+pub fn load_waveform_file(file_path: &str, bw_mhz: usize, frame_interval_us: usize) -> Result<(Vec<u8>, WaveformInfo), String> {
     let path = Path::new(file_path);
 
     if !path.exists() {
@@ -29,7 +27,7 @@ pub fn load_waveform_file(file_path: &str) -> Result<(Vec<u8>, WaveformInfo), St
         .to_lowercase();
 
     match ext.as_str() {
-        "mat" => load_mat_file(path),
+        "mat" => load_mat_file(path, bw_mhz, frame_interval_us),
         "waveform" => load_waveform_raw(path),
         _ => Err(format!(
             "Unsupported file format: .{}. Supported: .mat, .WAVEFORM",
@@ -42,7 +40,7 @@ pub fn load_waveform_file(file_path: &str) -> Result<(Vec<u8>, WaveformInfo), St
 ///
 /// Mirrors the Python implementation in reference/gen_waveform.py:
 ///   import_mat() -> gen_wfm() -> interleaved big-endian int16 IQ bytes
-fn load_mat_file(path: &Path) -> Result<(Vec<u8>, WaveformInfo), String> {
+fn load_mat_file(path: &Path, bw_mhz: usize, frame_interval_us: usize) -> Result<(Vec<u8>, WaveformInfo), String> {
     let file =
         std::fs::File::open(path).map_err(|e| format!("Failed to open file: {}", e))?;
     let mat = MatFile::parse(file).map_err(|e| format!("Failed to parse .mat file: {}", e))?;
@@ -76,7 +74,7 @@ fn load_mat_file(path: &Path) -> Result<(Vec<u8>, WaveformInfo), String> {
     };
 
     // Append zeros for frame interval (matches Python: frame_interval_us * BW_Mhz * 2)
-    let zero_count = FRAME_INTERVAL_US * BW_MHZ * 2;
+    let zero_count = frame_interval_us * bw_mhz * 2;
     real.resize(real.len() + zero_count, 0.0);
     imag.resize(imag.len() + zero_count, 0.0);
 

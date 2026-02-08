@@ -9,7 +9,8 @@ let fileNameLabel: HTMLElement;
 let browseBtn: HTMLButtonElement;
 let exportBtn: HTMLButtonElement;
 let cfInput: HTMLInputElement;
-let fsInput: HTMLInputElement;
+let bwInput: HTMLInputElement;
+let frameIntervalInput: HTMLInputElement;
 let ampInput: HTMLInputElement;
 let playBtn: HTMLButtonElement;
 let stopBtn: HTMLButtonElement;
@@ -103,7 +104,13 @@ async function browse() {
   log(`Loading file: ${fileName}...`);
 
   try {
-    const info = await invoke<WaveformInfo>("load_waveform", { filePath });
+    const bwMhz = parseInt(bwInput.value, 10);
+    const frameIntervalUs = parseInt(frameIntervalInput.value, 10);
+    if (isNaN(bwMhz) || bwMhz <= 0 || isNaN(frameIntervalUs) || frameIntervalUs < 0) {
+      log("Invalid BW or Frame Interval values", "error");
+      return;
+    }
+    const info = await invoke<WaveformInfo>("load_waveform", { filePath, bwMhz, frameIntervalUs });
     wfmLoaded = true;
     log(`Loaded: ${info.file_name} (${info.sample_count} IQ samples, ${info.file_size} bytes)`, "success");
   } catch (e) {
@@ -143,10 +150,10 @@ async function exportWaveform() {
 
 async function play() {
   const cf = parseFloat(cfInput.value) * 1e6;
-  const fs = parseFloat(fsInput.value) * 1e6;
+  const bwMhz = parseFloat(bwInput.value);
   const amp = parseFloat(ampInput.value);
 
-  if (isNaN(cf) || isNaN(fs) || isNaN(amp)) {
+  if (isNaN(cf) || isNaN(bwMhz) || bwMhz <= 0 || isNaN(amp)) {
     log("Invalid configuration values", "error");
     return;
   }
@@ -155,10 +162,10 @@ async function play() {
 
   playBtn.disabled = true;
   const repeatInfo = repeatCount > 0 ? `Repeat=${repeatCount}` : "Continuous";
-  log(`Playing waveform (CF=${cfInput.value} MHz, FS=${fsInput.value} MHz, Power=${ampInput.value} dBm, ${repeatInfo})...`);
+  log(`Playing waveform (CF=${cfInput.value} MHz, BW=${bwInput.value} MHz, Power=${ampInput.value} dBm, ${repeatInfo})...`);
 
   try {
-    await invoke("play_waveform", { cf, fs, amp, repeatCount });
+    await invoke("play_waveform", { cf, bwMhz, amp, repeatCount });
     log("Waveform playing", "success");
   } catch (e) {
     log(`Play failed: ${e}`, "error");
@@ -190,7 +197,8 @@ window.addEventListener("DOMContentLoaded", () => {
   browseBtn = document.querySelector("#browse-btn")!;
   exportBtn = document.querySelector("#export-btn")!;
   cfInput = document.querySelector("#cf-input")!;
-  fsInput = document.querySelector("#fs-input")!;
+  bwInput = document.querySelector("#bw-input")!;
+  frameIntervalInput = document.querySelector("#frame-interval-input")!;
   ampInput = document.querySelector("#amp-input")!;
   playBtn = document.querySelector("#play-btn")!;
   stopBtn = document.querySelector("#stop-btn")!;

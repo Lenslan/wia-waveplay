@@ -43,10 +43,32 @@
                         <button id="browse-btn">Browse...</button>
                         <button id="export-btn" disabled>Export</button>
                     </div>
+                    <div class="config-row waveform-params">
+                        <div class="config-item">
+                            <label for="bw-input">BW (MHz)</label>
+                            <input
+                                type="number"
+                                id="bw-input"
+                                value="20"
+                                step="1"
+                                min="1"
+                            />
+                        </div>
+                        <div class="config-item">
+                            <label for="frame-interval-input">Frame Interval (us)</label>
+                            <input
+                                type="number"
+                                id="frame-interval-input"
+                                value="30"
+                                step="1"
+                                min="0"
+                            />
+                        </div>
+                    </div>
                 </section>
             </div>
 
-            <!-- Configuration: 3 columns in one row -->
+            <!-- Configuration: 2 columns + repeat + controls -->
             <section class="section">
                 <h2>Configuration</h2>
                 <div class="config-row">
@@ -150,16 +172,6 @@
                         />
                     </div>
                     <div class="config-item">
-                        <label for="fs-input">Sample Rate (MHz)</label>
-                        <input
-                            type="number"
-                            id="fs-input"
-                            value="40"
-                            step="0.1"
-                            min="0"
-                        />
-                    </div>
-                    <div class="config-item">
                         <label for="amp-input">Output Power (dBm)</label>
                         <input
                             type="number"
@@ -169,10 +181,6 @@
                         />
                     </div>
                 </div>
-            </section>
-
-            <!-- Control -->
-            <section class="section">
                 <div class="repeat-row">
                     <label class="checkbox-label">
                         <input type="checkbox" id="repeat-check" />
