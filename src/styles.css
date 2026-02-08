@@ -1,0 +1,237 @@
+:root {
+  font-family: "Segoe UI", Inter, system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #e0e0e0;
+  background-color: #1a1a2e;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px 24px;
+}
+
+header {
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #888;
+}
+
+/* Sections */
+.section {
+  background: #16213e;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.section h2 {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #4a9eff;
+  margin-bottom: 10px;
+}
+
+/* Form layouts */
+.form-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  align-items: center;
+}
+
+.form-grid label {
+  font-size: 13px;
+  color: #bbb;
+}
+
+/* Inputs */
+input[type="text"],
+input[type="number"] {
+  background: #0f3460;
+  border: 1px solid #2a4a7a;
+  border-radius: 4px;
+  color: #e0e0e0;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus {
+  border-color: #4a9eff;
+}
+
+input[type="text"] {
+  flex: 1;
+}
+
+input[type="number"] {
+  width: 100%;
+}
+
+input:disabled {
+  opacity: 0.5;
+}
+
+/* Buttons */
+button {
+  background: #0f3460;
+  border: 1px solid #4a9eff;
+  border-radius: 4px;
+  color: #4a9eff;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+  outline: none;
+}
+
+button:hover:not(:disabled) {
+  background: #1a4a7a;
+}
+
+button:active:not(:disabled) {
+  background: #0a2a50;
+}
+
+button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Play / Stop buttons */
+.control-row {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-play {
+  flex: 1;
+  background: #0a4a2a;
+  border-color: #2ecc71;
+  color: #2ecc71;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.btn-play:hover:not(:disabled) {
+  background: #0d6b3a;
+}
+
+.btn-stop {
+  flex: 1;
+  background: #4a0a0a;
+  border-color: #e74c3c;
+  color: #e74c3c;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.btn-stop:hover:not(:disabled) {
+  background: #6b0d0d;
+}
+
+/* File label */
+.file-label {
+  flex: 1;
+  font-size: 13px;
+  color: #888;
+  padding: 7px 10px;
+  background: #0f3460;
+  border: 1px solid #2a4a7a;
+  border-radius: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Status text */
+.status {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #666;
+}
+
+.status.connected {
+  color: #2ecc71;
+}
+
+.status.error {
+  color: #e74c3c;
+}
+
+/* Log area */
+.log-area {
+  background: #0a0a1a;
+  border: 1px solid #1a1a3a;
+  border-radius: 4px;
+  padding: 10px 12px;
+  height: 130px;
+  overflow-y: auto;
+  font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #999;
+}
+
+.log-area .log-entry {
+  word-break: break-all;
+}
+
+.log-area .log-error {
+  color: #e74c3c;
+}
+
+.log-area .log-success {
+  color: #2ecc71;
+}
+
+/* Scrollbar */
+.log-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.log-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.log-area::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
