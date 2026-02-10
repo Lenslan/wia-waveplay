@@ -65,6 +65,7 @@ impl VsgInstrument {
     /// Activate arb playback: select waveform, enable RF output, modulation, and arb state.
     /// Plays the waveform continuously (infinite loop).
     pub fn play(&mut self, wfm_id: &str) -> Result<(), String> {
+        self.client.write_cmd("radio:arb:trigger:type continuous")?;
         self.client
             .write_cmd(&format!("radio:arb:waveform \"WFM1:{}\"", wfm_id))?;
         self.client.write_cmd("output 1")?;
