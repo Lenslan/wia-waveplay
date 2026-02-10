@@ -85,12 +85,11 @@ fn play_waveform(
     let fs = bw_mhz * 2.0 * 1e6;
     let vsg = app_state.vsg.as_mut().unwrap();
     vsg.configure(cf, fs, amp)?;
+    vsg.download_wfm(&wfm_data, "waveform")?;
 
     if repeat_count > 0 {
-        vsg.download_wfm(&wfm_data.repeat(repeat_count as usize), "waveform")?;
         vsg.play_with_repeat("waveform", repeat_count)?;
     } else {
-        vsg.download_wfm(&wfm_data, "waveform")?;
         vsg.play("waveform")?;
     }
 
