@@ -75,22 +75,35 @@ impl VsgInstrument {
 
     /// Activate arb playback with a finite repeat count.
     ///
-    /// `count` is the number of times to play the waveform.
+    /// Creates a waveform sequence from the uploaded segment with the specified
+    /// repeat count, then plays the sequence.
     ///
-    /// TODO: Implement finite repeat count via SCPI commands.
-    /// Possible SCPI commands to investigate:
-    ///   - `radio:arb:trigger:type:continuous` vs `single`
-    ///   - `radio:arb:count <n>`
-    ///   - `radio:arb:retrigger:count <n>`
-    ///   - Refer to Keysight X-Series Signal Generators Programming Guide
-    ///     for the exact commands supported by the target instrument model.
-    pub fn play_with_repeat(&mut self, wfm_id: &str, _count: u32) -> Result<(), String> {
-        // TODO: Send SCPI commands to configure finite repeat count, e.g.:
-        // self.client.write_cmd("radio:arb:trigger:type single")?;
-        // self.client.write_cmd(&format!("radio:arb:count {}", _count))?;
+    /// SCPI flow (from Keysight N5182B Programming Guide):
+    ///   1. Build sequence: `:SOURce:RADio:ARB:SEQuence "<seq>","<wfm>",<reps>,<markers>`
+    ///   2. Select sequence:  `:SOURce:RADio:ARB:WAVeform "SEQ:<seq>"`
+    ///   3. Enable output:    ARB state → modulation → RF output
+    pub fn play_with_repeat(&mut self, wfm_id: &str, count: u32) -> Result<(), String> {
+        let seq_id = format!("seq_{}", wfm_id);
 
-        // Fallback: play continuously until the finite-repeat SCPI is implemented
-        self.play(wfm_id)
+        // Create a waveform sequence referencing the uploaded segment.
+        // markers = 0 (no markers enabled)
+        self.client.write_cmd(&format!(
+            "radio:arb:sequence \"{}\",\"WFM1:{}\",{},0",
+            seq_id, wfm_id, count
+        ))?;
+
+        // Select the sequence for playback
+        self.client.write_cmd(&format!(
+            "radio:arb:waveform \"sequence {}\"",
+            seq_id
+        ))?;
+
+        // Enable playback (order per Keysight documentation)
+        self.client.write_cmd("radio:arb:state 1")?;
+        self.client.write_cmd("output:modulation 1")?;
+        self.client.write_cmd("output 1")?;
+
+        self.client.err_check()
     }
 
     /// Stop playback: disable RF output, modulation, and arb state.
