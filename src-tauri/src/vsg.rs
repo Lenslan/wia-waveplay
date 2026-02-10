@@ -83,25 +83,29 @@ impl VsgInstrument {
     ///   2. Select sequence:  `:SOURce:RADio:ARB:WAVeform "SEQ:<seq>"`
     ///   3. Enable output:    ARB state → modulation → RF output
     pub fn play_with_repeat(&mut self, wfm_id: &str, count: u32) -> Result<(), String> {
-        let seq_id = format!("seq_{}", wfm_id);
+        // let seq_id = format!("seq_{}", wfm_id);
 
-        // Create a waveform sequence referencing the uploaded segment.
-        // markers = 0 (no markers enabled)
-        self.client.write_cmd(&format!(
-            "radio:arb:sequence \"{}\",\"WFM1:{}\",{},0",
-            seq_id, wfm_id, count
-        ))?;
+        // // Create a waveform sequence referencing the uploaded segment.
+        // // markers = 0 (no markers enabled)
+        // self.client.write_cmd(&format!(
+        //     "radio:arb:sequence \"{}\",\"WFM1:{}\",{},0",
+        //     seq_id, wfm_id, count
+        // ))?;
 
-        // Select the sequence for playback
-        self.client.write_cmd(&format!(
-            "radio:arb:waveform \"sequence {}\"",
-            seq_id
-        ))?;
+        // // Select the sequence for playback
+        // self.client.write_cmd(&format!(
+        //     "radio:arb:waveform \"sequence {}\"",
+        //     seq_id
+        // ))?;
+        self.client.write_cmd("radio:arb:trigger:source bus")?;
+        self.client.write_cmd("radio:arb:trigger:type single")?;
 
         // Enable playback (order per Keysight documentation)
         self.client.write_cmd("radio:arb:state 1")?;
         self.client.write_cmd("output:modulation 1")?;
         self.client.write_cmd("output 1")?;
+
+        self.client.write_cmd("*TRG")?;
 
         self.client.err_check()
     }
