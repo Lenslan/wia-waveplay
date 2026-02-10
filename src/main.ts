@@ -21,6 +21,7 @@ let logArea: HTMLElement;
 let isConnected = false;
 let wfmLoaded = false;
 let isMatSource = false;
+let currentFilePath: string | null = null;
 
 interface WaveformInfo {
   file_name: string;
@@ -85,6 +86,35 @@ async function disconnect() {
   updateUI();
 }
 
+async function reloadWaveform() {
+  if (!currentFilePath) return;
+
+  const bwMhz = parseInt(bwInput.value, 10);
+  const frameIntervalUs = parseInt(frameIntervalInput.value, 10);
+  if (isNaN(bwMhz) || bwMhz <= 0 || isNaN(frameIntervalUs) || frameIntervalUs < 0) {
+    log("Invalid BW or Frame Interval values", "error");
+    return;
+  }
+
+  const fileName = currentFilePath.split(/[/\\]/).pop() || currentFilePath;
+  log(`Loading file: ${fileName} (BW=${bwMhz} MHz, FrameInterval=${frameIntervalUs} us)...`);
+
+  try {
+    const info = await invoke<WaveformInfo>("load_waveform", {
+      filePath: currentFilePath,
+      bwMhz,
+      frameIntervalUs,
+    });
+    wfmLoaded = true;
+    log(`Loaded: ${info.file_name} (${info.sample_count} IQ samples, ${info.file_size} bytes)`, "success");
+  } catch (e) {
+    log(`Failed to load waveform: ${e}`, "error");
+    wfmLoaded = false;
+  }
+
+  updateUI();
+}
+
 async function browse() {
   const selected = await open({
     multiple: false,
@@ -97,30 +127,19 @@ async function browse() {
 
   if (!selected) return;
 
-  const filePath = selected as string;
-  const fileName = filePath.split(/[/\\]/).pop() || filePath;
+  currentFilePath = selected as string;
+  const fileName = currentFilePath.split(/[/\\]/).pop() || currentFilePath;
   isMatSource = fileName.toLowerCase().endsWith(".mat");
   fileNameLabel.textContent = fileName;
-  log(`Loading file: ${fileName}...`);
 
-  try {
-    const bwMhz = parseInt(bwInput.value, 10);
-    const frameIntervalUs = parseInt(frameIntervalInput.value, 10);
-    if (isNaN(bwMhz) || bwMhz <= 0 || isNaN(frameIntervalUs) || frameIntervalUs < 0) {
-      log("Invalid BW or Frame Interval values", "error");
-      return;
-    }
-    const info = await invoke<WaveformInfo>("load_waveform", { filePath, bwMhz, frameIntervalUs });
-    wfmLoaded = true;
-    log(`Loaded: ${info.file_name} (${info.sample_count} IQ samples, ${info.file_size} bytes)`, "success");
-  } catch (e) {
-    log(`Failed to load waveform: ${e}`, "error");
+  await reloadWaveform();
+
+  if (!wfmLoaded) {
     fileNameLabel.textContent = "No file selected";
-    wfmLoaded = false;
+    currentFilePath = null;
     isMatSource = false;
+    updateUI();
   }
-
-  updateUI();
 }
 
 async function exportWaveform() {
@@ -215,6 +234,15 @@ window.addEventListener("DOMContentLoaded", () => {
   repeatCheck.addEventListener("change", () => {
     repeatCountInput.disabled = !repeatCheck.checked;
   });
+
+  // Re-load .mat waveform when BW or Frame Interval changes
+  const onWaveformParamChange = () => {
+    if (currentFilePath && isMatSource) {
+      reloadWaveform();
+    }
+  };
+  bwInput.addEventListener("change", onWaveformParamChange);
+  frameIntervalInput.addEventListener("change", onWaveformParamChange);
 
   // Channel help popup
   const channelHelp = document.querySelector("#channel-help")!;
