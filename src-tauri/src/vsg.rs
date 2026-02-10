@@ -31,7 +31,7 @@ impl VsgInstrument {
     /// - `fs`: ARB sample clock rate in Hz
     /// - `amp`: output power in dBm
     pub fn configure(&mut self, cf: f64, fs: f64, amp: f64) -> Result<(), String> {
-        if fs > 240.0 {
+        if fs > 240.0 * 1e6 {
             return Err("Sample Rate Can not be set more than 240 MHz!".into())
         }
         self.client
