@@ -4554,7 +4554,7 @@ dependencies = [
 
 [[package]]
 name = "wia-waveplay"
-version = "0.1.0"
+version = "1.1.0"
 dependencies = [
  "matfile",
  "serde",
