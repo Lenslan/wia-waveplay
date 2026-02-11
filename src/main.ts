@@ -12,6 +12,7 @@ let cfInput: HTMLInputElement;
 let bwInput: HTMLInputElement;
 let frameIntervalInput: HTMLInputElement;
 let ampInput: HTMLInputElement;
+let cableLossInput: HTMLInputElement;
 let playBtn: HTMLButtonElement;
 let stopBtn: HTMLButtonElement;
 let repeatCheck: HTMLInputElement;
@@ -170,18 +171,21 @@ async function exportWaveform() {
 async function play() {
   const cf = parseFloat(cfInput.value) * 1e6;
   const bwMhz = parseFloat(bwInput.value);
-  const amp = parseFloat(ampInput.value);
+  const outputPower = parseFloat(ampInput.value);
+  const cableLoss = parseFloat(cableLossInput.value) || 0;
 
-  if (isNaN(cf) || isNaN(bwMhz) || bwMhz <= 0 || isNaN(amp)) {
+  if (isNaN(cf) || isNaN(bwMhz) || bwMhz <= 0 || isNaN(outputPower)) {
     log("Invalid configuration values", "error");
     return;
   }
 
+  const amp = outputPower + cableLoss;
   const repeatCount = repeatCheck.checked ? parseInt(repeatCountInput.value, 10) || 1 : 0;
 
   playBtn.disabled = true;
   const repeatInfo = repeatCount > 0 ? `Repeat=${repeatCount}` : "Continuous";
-  log(`Playing waveform (CF=${cfInput.value} MHz, BW=${bwInput.value} MHz, Power=${ampInput.value} dBm, ${repeatInfo})...`);
+  const lossInfo = cableLoss > 0 ? `, CableLoss=${cableLoss} dB, TxPower=${amp} dBm` : "";
+  log(`Playing waveform (CF=${cfInput.value} MHz, BW=${bwInput.value} MHz, Power=${outputPower} dBm${lossInfo}, ${repeatInfo})...`);
 
   try {
     await invoke("play_waveform", { cf, bwMhz, amp, repeatCount });
@@ -219,6 +223,7 @@ window.addEventListener("DOMContentLoaded", () => {
   bwInput = document.querySelector("#bw-input")!;
   frameIntervalInput = document.querySelector("#frame-interval-input")!;
   ampInput = document.querySelector("#amp-input")!;
+  cableLossInput = document.querySelector("#cable-loss-input")!;
   playBtn = document.querySelector("#play-btn")!;
   stopBtn = document.querySelector("#stop-btn")!;
   repeatCheck = document.querySelector("#repeat-check")!;

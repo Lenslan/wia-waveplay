@@ -111,15 +111,16 @@ h1 {
   align-items: center;
 }
 
-/* Configuration: 2 columns */
+/* Configuration: 3 columns */
 .config-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 0.75rem;
 }
 
 .waveform-params {
   margin-top: 0.45rem;
+  grid-template-columns: 1fr 1fr;
 }
 
 .config-item label {
