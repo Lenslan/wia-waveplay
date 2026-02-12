@@ -6,6 +6,10 @@ let ipInput: HTMLInputElement;
 let connectBtn: HTMLButtonElement;
 let disconnectBtn: HTMLButtonElement;
 let connectionStatus: HTMLElement;
+let dutIpInput: HTMLInputElement;
+let dutConnectBtn: HTMLButtonElement;
+let dutDisconnectBtn: HTMLButtonElement;
+let dutStatus: HTMLElement;
 let fileNameLabel: HTMLElement;
 let browseBtn: HTMLButtonElement;
 let exportBtn: HTMLButtonElement;
@@ -26,6 +30,7 @@ let sweepBtn: HTMLButtonElement;
 let sweepStopBtn: HTMLButtonElement;
 
 let isConnected = false;
+let isDutConnected = false;
 let wfmLoaded = false;
 let isMatSource = false;
 let isSweeping = false;
@@ -56,6 +61,9 @@ function updateUI() {
   connectBtn.disabled = isConnected || isSweeping;
   disconnectBtn.disabled = !isConnected || isSweeping;
   ipInput.disabled = isConnected;
+  dutConnectBtn.disabled = isDutConnected || isSweeping;
+  dutDisconnectBtn.disabled = !isDutConnected || isSweeping;
+  dutIpInput.disabled = isDutConnected;
   browseBtn.disabled = isSweeping;
   playBtn.disabled = !isConnected || !wfmLoaded || isSweeping;
   stopBtn.disabled = !isConnected || isSweeping;
@@ -95,9 +103,48 @@ async function disconnect() {
     isConnected = false;
     connectionStatus.textContent = "Disconnected";
     connectionStatus.className = "status";
-    log("Disconnected");
+    log("VSG disconnected");
   } catch (e) {
     log(`Disconnect error: ${e}`, "error");
+  }
+
+  updateUI();
+}
+
+async function connectDut() {
+  const ip = dutIpInput.value.trim();
+  if (!ip) {
+    log("Please enter a DUT IP address", "error");
+    return;
+  }
+
+  dutConnectBtn.disabled = true;
+  log(`Connecting to DUT at ${ip}...`);
+
+  try {
+    await invoke("connect_dut", { ip });
+    isDutConnected = true;
+    dutStatus.textContent = `Connected: ${ip}:9600`;
+    dutStatus.className = "status connected";
+    log(`DUT connected: ${ip}`, "success");
+  } catch (e) {
+    log(`DUT connection failed: ${e}`, "error");
+    dutStatus.textContent = "Connection failed";
+    dutStatus.className = "status error";
+  }
+
+  updateUI();
+}
+
+async function disconnectDut() {
+  try {
+    await invoke("disconnect_dut");
+    isDutConnected = false;
+    dutStatus.textContent = "Not connected";
+    dutStatus.className = "status";
+    log("DUT disconnected");
+  } catch (e) {
+    log(`DUT disconnect error: ${e}`, "error");
   }
 
   updateUI();
@@ -283,6 +330,10 @@ window.addEventListener("DOMContentLoaded", () => {
   connectBtn = document.querySelector("#connect-btn")!;
   disconnectBtn = document.querySelector("#disconnect-btn")!;
   connectionStatus = document.querySelector("#connection-status")!;
+  dutIpInput = document.querySelector("#dut-ip-input")!;
+  dutConnectBtn = document.querySelector("#dut-connect-btn")!;
+  dutDisconnectBtn = document.querySelector("#dut-disconnect-btn")!;
+  dutStatus = document.querySelector("#dut-status")!;
   fileNameLabel = document.querySelector("#file-name")!;
   browseBtn = document.querySelector("#browse-btn")!;
   exportBtn = document.querySelector("#export-btn")!;
@@ -317,6 +368,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
   connectBtn.addEventListener("click", connect);
   disconnectBtn.addEventListener("click", disconnect);
+  dutConnectBtn.addEventListener("click", connectDut);
+  dutDisconnectBtn.addEventListener("click", disconnectDut);
   browseBtn.addEventListener("click", browse);
   exportBtn.addEventListener("click", exportWaveform);
   playBtn.addEventListener("click", play);

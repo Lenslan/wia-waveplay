@@ -1,3 +1,4 @@
+mod dut;
 mod scpi;
 mod vsg;
 mod waveform;
@@ -5,11 +6,13 @@ mod waveform;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, State};
+use dut::DutClient;
 use vsg::VsgInstrument;
 use waveform::WaveformInfo;
 
 struct AppState {
     vsg: Option<VsgInstrument>,
+    dut: Option<DutClient>,
     wfm_data: Option<Vec<u8>>,
 }
 
@@ -39,6 +42,23 @@ fn disconnect_instrument(state: State<Mutex<AppState>>) -> Result<(), String> {
     }
     app_state.vsg = None;
 
+    Ok(())
+}
+
+#[tauri::command]
+fn connect_dut(ip: String, state: State<Mutex<AppState>>) -> Result<(), String> {
+    let mut app_state = state.lock().map_err(|e| format!("Lock failed: {}", e))?;
+    app_state.dut = None;
+
+    let dut = DutClient::connect(&ip, 5)?;
+    app_state.dut = Some(dut);
+    Ok(())
+}
+
+#[tauri::command]
+fn disconnect_dut(state: State<Mutex<AppState>>) -> Result<(), String> {
+    let mut app_state = state.lock().map_err(|e| format!("Lock failed: {}", e))?;
+    app_state.dut = None;
     Ok(())
 }
 
@@ -147,16 +167,27 @@ fn power_sweep(
         .ok_or("No waveform file loaded")?;
 
     let fs = bw_mhz * 2.0 * 1e6;
-    let vsg = app_state.vsg.as_mut().unwrap();
+
+    // Destructure to allow simultaneous mutable borrows of vsg and dut
+    let AppState { ref mut vsg, ref mut dut, .. } = *app_state;
+    let vsg = vsg.as_mut().unwrap();
 
     // One-time setup: configure, download, create sequence, enable output
     vsg.prepare_sweep(&wfm_data, "waveform", cf, fs, start_power + cable_loss, 1000)?;
 
+    // DUT parameters: carrier frequency and BW in MHz (integers for ATE command)
+    let cf_mhz = (cf / 1e6).round() as u32;
+    let bw = bw_mhz.round() as u32;
+
+    if let Some(ref mut dut) = dut {
+            dut.close_rx(cf_mhz)?;
+        }
+
     // Calculate wait time for 1000 repetitions
-    let sample_count = wfm_data.len() / 4;
+    let sample_count = wfm_data.len() / 2;
     let wfm_duration = sample_count as f64 / fs;
-    let wait_secs = wfm_duration * 1000.0 + 1.0;
-    let wait_duration = std::time::Duration::from_secs_f64(wait_secs);
+    let wait_secs = wfm_duration as u64 + 100;
+    let wait_duration = std::time::Duration::from_micros(wait_secs);
 
     // Build list of power steps
     let mut powers = Vec::new();
@@ -172,9 +203,20 @@ fn power_sweep(
             break;
         }
 
+        // Open DUT RX before triggering
+        if let Some(ref mut dut) = dut {
+            dut.open_rx(cf_mhz, bw)?;
+        }
+
         vsg.set_power(power + cable_loss)?;
         vsg.trigger()?;
         std::thread::sleep(wait_duration);
+
+        // Close DUT RX after playback completes
+        if let Some(ref mut dut) = dut {
+            dut.read_mib(cf_mhz)?;
+            dut.close_rx(cf_mhz)?;
+        }
 
         let _ = app.emit(
             "sweep-progress",
@@ -199,12 +241,15 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(Mutex::new(AppState {
             vsg: None,
+            dut: None,
             wfm_data: None,
         }))
         .manage(Arc::new(AtomicBool::new(false)))
         .invoke_handler(tauri::generate_handler![
             connect_instrument,
             disconnect_instrument,
+            connect_dut,
+            disconnect_dut,
             load_waveform,
             export_waveform,
             play_waveform,

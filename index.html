@@ -21,18 +21,37 @@
             <div class="top-row">
                 <section class="section">
                     <h2>Connection</h2>
-                    <div class="form-row">
-                        <input
-                            type="text"
-                            id="ip-input"
-                            placeholder="IP Address"
-                            value="192.168.1.100"
-                        />
-                        <button id="connect-btn">Connect</button>
-                        <button id="disconnect-btn" disabled>Disconnect</button>
+                    <div class="conn-group">
+                        <span class="conn-label">VSG</span>
+                        <div class="form-row">
+                            <input
+                                type="text"
+                                id="ip-input"
+                                placeholder="VSG IP Address"
+                                value="192.168.1.100"
+                            />
+                            <button id="connect-btn">Connect</button>
+                            <button id="disconnect-btn" disabled>Disconnect</button>
+                        </div>
+                        <div id="connection-status" class="status">
+                            Not connected
+                        </div>
                     </div>
-                    <div id="connection-status" class="status">
-                        Not connected
+                    <div class="conn-group">
+                        <span class="conn-label">DUT</span>
+                        <div class="form-row">
+                            <input
+                                type="text"
+                                id="dut-ip-input"
+                                placeholder="DUT IP Address"
+                                value="192.168.1.1"
+                            />
+                            <button id="dut-connect-btn">Connect</button>
+                            <button id="dut-disconnect-btn" disabled>Disconnect</button>
+                        </div>
+                        <div id="dut-status" class="status">
+                            Not connected
+                        </div>
                     </div>
                 </section>
 

@@ -111,6 +111,28 @@ h1 {
   align-items: center;
 }
 
+/* Connection groups (VSG / DUT) */
+.conn-group {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 0.45rem;
+  align-items: center;
+}
+
+.conn-group + .conn-group {
+  margin-top: 0.4rem;
+}
+
+.conn-label {
+  grid-row: 1 / 3;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #999;
+  text-align: center;
+}
+
 /* Configuration: 3 columns */
 .config-row {
   display: grid;
