@@ -133,6 +133,8 @@ struct SweepProgress {
     current_power: f64,
     step_index: usize,
     total_steps: usize,
+    rec_rx_count: Option<u32>,
+    rx_ok_count: Option<u32>,
 }
 
 #[tauri::command]
@@ -212,9 +214,14 @@ fn power_sweep(
         vsg.trigger()?;
         std::thread::sleep(wait_duration);
 
-        // Close DUT RX after playback completes
+        // Read MIB and close DUT RX after playback completes
+        let mut rec_rx_count = None;
+        let mut rx_ok_count = None;
         if let Some(ref mut dut) = dut {
-            dut.read_mib(cf_mhz)?;
+            let mib_raw = dut.read_mib(cf_mhz)?;
+            let mib = DutClient::parse_mib_resp(&mib_raw, bw);
+            rec_rx_count = mib.rec_rx_count;
+            rx_ok_count = mib.rx_ok_count;
             dut.close_rx(cf_mhz)?;
         }
 
@@ -224,6 +231,8 @@ fn power_sweep(
                 current_power: power,
                 step_index: i + 1,
                 total_steps,
+                rec_rx_count,
+                rx_ok_count,
             },
         );
     }

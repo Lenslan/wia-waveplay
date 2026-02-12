@@ -46,6 +46,8 @@ interface SweepProgress {
   current_power: number;
   step_index: number;
   total_steps: number;
+  rec_rx_count: number | null;
+  rx_ok_count: number | null;
 }
 
 function log(msg: string, type: "info" | "error" | "success" = "info") {
@@ -420,10 +422,14 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // Listen for sweep progress events from backend
   listen<SweepProgress>("sweep-progress", (event) => {
-    const { current_power, step_index, total_steps } = event.payload;
+    const { current_power, step_index, total_steps, rec_rx_count, rx_ok_count } = event.payload;
     const cableLoss = parseFloat(cableLossInput.value) || 0;
     const txPower = (current_power + cableLoss).toFixed(1);
-    log(`[Sweep] Step ${step_index}/${total_steps}: ${current_power} dBm (TxPower ${txPower} dBm)`);
+    let msg = `[Sweep] Step ${step_index}/${total_steps}: ${current_power} dBm (TxPower ${txPower} dBm)`;
+    if (rec_rx_count !== null) {
+      msg += ` | RX=${rec_rx_count}, OK=${rx_ok_count ?? "?"}`;
+    }
+    log(msg);
   });
 
   listen("sweep-done", () => {

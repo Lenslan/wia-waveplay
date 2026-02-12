@@ -82,6 +82,21 @@ impl DutClient {
         }
     }
 
+    /// Read response and return the raw header line (for MIB parsing).
+    fn read_resp_raw(&mut self) -> Result<String, String> {
+        let mut line = String::new();
+        self.reader
+            .read_line(&mut line)
+            .map_err(|e| format!("DUT read failed: {}", e))?;
+        let resp: ResponseHeader =
+            serde_json::from_str(&line).map_err(|e| format!("DUT response parse failed: {}", e))?;
+        if resp.is_error {
+            Err("DUT returned error".into())
+        } else {
+            Ok(line)
+        }
+    }
+
     /// Open RX on the DUT.
     ///
     /// - `cf_mhz`: carrier frequency in MHz (e.g. 2412, 5180)
@@ -122,7 +137,7 @@ impl DutClient {
         self.read_resp()
     }
 
-    pub fn read_mib(&mut self, cf_mhz: u32) -> Result<(), String> {
+    pub fn read_mib(&mut self, cf_mhz: u32) -> Result<String, String> {
         let iface = if cf_mhz >= 5000 { "wlan0" } else { "wlan1" };
         let arg_str = format!("{} fastconfig -R", iface);
         let args: Vec<String> = arg_str.split(' ').map(|s| s.to_string()).collect();
@@ -131,6 +146,103 @@ impl DutClient {
             args,
         };
         self.send_cmd(cmd)?;
-        self.read_resp()
+        self.read_resp_raw()
+    }
+
+    /// MIB result extracted from `fastconfig -R` output.
+    ///
+    /// Example input:
+    /// ```text
+    /// [ 5360.257334] [***debug***] user->rec_rx_count = 1000
+    /// ...
+    /// receive 20M OK = 0, receive 40M OK = 1000, receive 80M OK = 0, receive 160M OK = 0
+    /// ```
+    pub fn parse_mib_resp(output: &str, bw_mhz: u32) -> MibResult {
+        // Extract rec_rx_count: match "user->rec_rx_count = <number>"
+        let rec_rx_count = output
+            .lines()
+            .find_map(|line| {
+                let idx = line.find("user->rec_rx_count")?;
+                let after_eq = line[idx..].split('=').nth(1)?;
+                after_eq.trim().parse::<u32>().ok()
+            });
+
+        // Extract per-BW OK count from "receive <BW>M OK = <number>"
+        // Build the key for the target bandwidth, e.g. "receive 20M OK"
+        let bw_key = format!("receive {}M OK", bw_mhz);
+        let rx_ok_count = output
+            .lines()
+            .find_map(|line| {
+                let idx = line.find(&bw_key)?;
+                // From the key position, find the '=' and parse the number after it
+                let after_key = &line[idx + bw_key.len()..];
+                let after_eq = after_key.split('=').nth(1)?;
+                // Take only digits (stop at ',' or end of string)
+                let num_str = after_eq.trim().split(',').next()?.trim();
+                num_str.parse::<u32>().ok()
+            });
+
+        MibResult {
+            rec_rx_count,
+            rx_ok_count,
+        }
+    }
+}
+
+/// Parsed MIB statistics from DUT `fastconfig -R` output.
+#[derive(Clone, Debug)]
+pub struct MibResult {
+    /// Total received packet count (`user->rec_rx_count`).
+    pub rec_rx_count: Option<u32>,
+    /// Decoded OK count for the matching bandwidth (`receive <BW>M OK`).
+    pub rx_ok_count: Option<u32>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SAMPLE_MIB: &str = r#"
+[ 5360.255098] [***debug***] v_mib_state = 0x0  user->mib = 0
+[ 5360.255188] [***debug***] v_mib_state = 0x0  user->mib = 0
+[ 5360.255256] [***debug***] v_mib_state = 0x0  user->mib = 0
+[ 5360.255334] [***debug***] v_mib_state = 0x0  user->mib = 0
+[ 5360.255485] [***debug***] v_mib_state = 0x0  user->fcs_err = 0
+[ 5360.255662] [***debug***] v_mib_state = 0x0  user->phy_err = 0
+[ 5360.257334] [***debug***] user->rec_rx_count = 1000
+[ 5360.258854] [***debug***] rssi1 = -76
+[ 5360.258899] [***debug***] rssi2 = -77
+receive 20M OK = 0, receive 40M OK = 1000, receive 80M OK = 0, receive 160M OK = 0
+rssi_1 = -76， rssi_2 = -77
+"#;
+
+    #[test]
+    fn parse_rec_rx_count() {
+        let result = DutClient::parse_mib_resp(SAMPLE_MIB, 40);
+        assert_eq!(result.rec_rx_count, Some(1000));
+    }
+
+    #[test]
+    fn parse_rx_ok_40m() {
+        let result = DutClient::parse_mib_resp(SAMPLE_MIB, 40);
+        assert_eq!(result.rx_ok_count, Some(1000));
+    }
+
+    #[test]
+    fn parse_rx_ok_20m() {
+        let result = DutClient::parse_mib_resp(SAMPLE_MIB, 20);
+        assert_eq!(result.rx_ok_count, Some(0));
+    }
+
+    #[test]
+    fn parse_rx_ok_80m() {
+        let result = DutClient::parse_mib_resp(SAMPLE_MIB, 80);
+        assert_eq!(result.rx_ok_count, Some(0));
+    }
+
+    #[test]
+    fn parse_rx_ok_missing_bw() {
+        let result = DutClient::parse_mib_resp(SAMPLE_MIB, 10);
+        assert_eq!(result.rx_ok_count, None);
     }
 }
