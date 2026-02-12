@@ -72,10 +72,12 @@
                 </section>
             </div>
 
-            <!-- Configuration: 2 columns + repeat + controls -->
+            <!-- Configuration (tabbed: Single Power / Power Sweep) -->
             <section class="section">
                 <h2>Configuration</h2>
-                <div class="config-row">
+
+                <!-- Shared: CF + Cable Loss -->
+                <div class="config-row config-row-2col">
                     <div class="config-item">
                         <label for="cf-input">
                             Carrier Frequency (MHz)
@@ -362,15 +364,6 @@
                         />
                     </div>
                     <div class="config-item">
-                        <label for="amp-input">Output Power (dBm)</label>
-                        <input
-                            type="number"
-                            id="amp-input"
-                            value="-20"
-                            step="0.1"
-                        />
-                    </div>
-                    <div class="config-item">
                         <label for="cable-loss-input">Cable Loss (dB)</label>
                         <input
                             type="number"
@@ -381,73 +374,93 @@
                         />
                     </div>
                 </div>
-                <div class="repeat-row">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="repeat-check" />
-                        <span>Limit repeats</span>
-                    </label>
-                    <input
-                        type="number"
-                        id="repeat-count"
-                        value="1000"
-                        min="1"
-                        step="1"
-                        disabled
-                    />
-                    <span class="repeat-hint"
-                        >times (unchecked = continuous)</span
-                    >
-                </div>
-                <div class="control-row">
-                    <button id="play-btn" class="btn-play" disabled>
-                        &#9654; Play
-                    </button>
-                    <button id="stop-btn" class="btn-stop" disabled>
-                        &#9632; Stop
-                    </button>
-                </div>
-            </section>
 
-            <!-- Power Sweep -->
-            <section class="section">
-                <h2>Power Sweep</h2>
-                <div class="config-row">
-                    <div class="config-item">
-                        <label for="sweep-start">Start Power (dBm)</label>
-                        <input
-                            type="number"
-                            id="sweep-start"
-                            value="-30"
-                            step="0.5"
-                        />
+                <!-- Tab bar -->
+                <div class="tab-bar">
+                    <button class="tab active" data-tab="single">Single Power</button>
+                    <button class="tab" data-tab="sweep">Power Sweep</button>
+                </div>
+
+                <!-- Single Power tab -->
+                <div id="tab-single" class="tab-content active">
+                    <div class="config-row config-row-2col">
+                        <div class="config-item">
+                            <label for="amp-input">Output Power (dBm)</label>
+                            <input
+                                type="number"
+                                id="amp-input"
+                                value="-20"
+                                step="0.1"
+                            />
+                        </div>
+                        <div class="config-item">
+                            <div class="repeat-row">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="repeat-check" />
+                                    <span>Repeat</span>
+                                </label>
+                                <input
+                                    type="number"
+                                    id="repeat-count"
+                                    value="1000"
+                                    min="1"
+                                    step="1"
+                                    disabled
+                                />
+                                <span class="repeat-hint">times</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="config-item">
-                        <label for="sweep-end">End Power (dBm)</label>
-                        <input
-                            type="number"
-                            id="sweep-end"
-                            value="-10"
-                            step="0.5"
-                        />
-                    </div>
-                    <div class="config-item">
-                        <label for="sweep-step">Step (dB)</label>
-                        <input
-                            type="number"
-                            id="sweep-step"
-                            value="1"
-                            step="0.5"
-                            min="0.1"
-                        />
+                    <div class="control-row">
+                        <button id="play-btn" class="btn-play" disabled>
+                            &#9654; Play
+                        </button>
+                        <button id="stop-btn" class="btn-stop" disabled>
+                            &#9632; Stop
+                        </button>
                     </div>
                 </div>
-                <div class="control-row">
-                    <button id="sweep-btn" class="btn-play" disabled>
-                        Start Sweep
-                    </button>
-                    <button id="sweep-stop-btn" class="btn-stop" disabled>
-                        Stop Sweep
-                    </button>
+
+                <!-- Power Sweep tab -->
+                <div id="tab-sweep" class="tab-content">
+                    <div class="config-row">
+                        <div class="config-item">
+                            <label for="sweep-start">Start Power (dBm)</label>
+                            <input
+                                type="number"
+                                id="sweep-start"
+                                value="-30"
+                                step="0.5"
+                            />
+                        </div>
+                        <div class="config-item">
+                            <label for="sweep-end">End Power (dBm)</label>
+                            <input
+                                type="number"
+                                id="sweep-end"
+                                value="-10"
+                                step="0.5"
+                            />
+                        </div>
+                        <div class="config-item">
+                            <label for="sweep-step">Step (dB)</label>
+                            <input
+                                type="number"
+                                id="sweep-step"
+                                value="1"
+                                step="0.5"
+                                min="0.1"
+                            />
+                        </div>
+                    </div>
+                    <div class="control-row">
+                        <button id="sweep-btn" class="btn-play" disabled>
+                            Start Sweep
+                        </button>
+                        <button id="sweep-stop-btn" class="btn-stop" disabled>
+                            Stop Sweep
+                        </button>
+                    </div>
                 </div>
             </section>
 

@@ -123,6 +123,10 @@ h1 {
   grid-template-columns: 1fr 1fr;
 }
 
+.config-row-2col {
+  grid-template-columns: 1fr 1fr;
+}
+
 .config-item label {
   display: flex;
   align-items: center;
@@ -284,7 +288,6 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.6rem;
 }
 
 .checkbox-label {
@@ -313,6 +316,49 @@ button:disabled {
 .repeat-hint {
   font-size: 0.8rem;
   color: #999;
+}
+
+/* Tab bar */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  margin-top: 0.6rem;
+  border-bottom: 2px solid #e0e4ea;
+}
+
+.tab-bar .tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  margin-bottom: -2px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab-bar .tab:hover {
+  color: #333;
+  background: none;
+}
+
+.tab-bar .tab.active {
+  color: #1a73e8;
+  border-bottom-color: #1a73e8;
+  font-weight: 600;
+}
+
+/* Tab content panels */
+.tab-content {
+  display: none;
+  padding-top: 0.6rem;
+}
+
+.tab-content.active {
+  display: block;
 }
 
 .control-row {

@@ -302,6 +302,19 @@ window.addEventListener("DOMContentLoaded", () => {
   sweepBtn = document.querySelector("#sweep-btn")!;
   sweepStopBtn = document.querySelector("#sweep-stop-btn")!;
 
+  // Tab switching
+  const tabBtns = document.querySelectorAll<HTMLButtonElement>(".tab-bar .tab");
+  const tabContents = document.querySelectorAll<HTMLElement>(".tab-content");
+  tabBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      tabBtns.forEach((b) => b.classList.remove("active"));
+      tabContents.forEach((c) => c.classList.remove("active"));
+      btn.classList.add("active");
+      const target = document.querySelector(`#tab-${btn.dataset.tab}`)!;
+      target.classList.add("active");
+    });
+  });
+
   connectBtn.addEventListener("click", connect);
   disconnectBtn.addEventListener("click", disconnect);
   browseBtn.addEventListener("click", browse);
