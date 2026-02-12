@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { open, save } from "@tauri-apps/plugin-dialog";
 
 let ipInput: HTMLInputElement;
@@ -18,16 +19,28 @@ let stopBtn: HTMLButtonElement;
 let repeatCheck: HTMLInputElement;
 let repeatCountInput: HTMLInputElement;
 let logArea: HTMLElement;
+let sweepStartInput: HTMLInputElement;
+let sweepEndInput: HTMLInputElement;
+let sweepStepInput: HTMLInputElement;
+let sweepBtn: HTMLButtonElement;
+let sweepStopBtn: HTMLButtonElement;
 
 let isConnected = false;
 let wfmLoaded = false;
 let isMatSource = false;
+let isSweeping = false;
 let currentFilePath: string | null = null;
 
 interface WaveformInfo {
   file_name: string;
   file_size: number;
   sample_count: number;
+}
+
+interface SweepProgress {
+  current_power: number;
+  step_index: number;
+  total_steps: number;
 }
 
 function log(msg: string, type: "info" | "error" | "success" = "info") {
@@ -40,12 +53,15 @@ function log(msg: string, type: "info" | "error" | "success" = "info") {
 }
 
 function updateUI() {
-  connectBtn.disabled = isConnected;
-  disconnectBtn.disabled = !isConnected;
+  connectBtn.disabled = isConnected || isSweeping;
+  disconnectBtn.disabled = !isConnected || isSweeping;
   ipInput.disabled = isConnected;
-  playBtn.disabled = !isConnected || !wfmLoaded;
-  stopBtn.disabled = !isConnected;
+  browseBtn.disabled = isSweeping;
+  playBtn.disabled = !isConnected || !wfmLoaded || isSweeping;
+  stopBtn.disabled = !isConnected || isSweeping;
   exportBtn.disabled = !wfmLoaded || !isMatSource;
+  sweepBtn.disabled = !isConnected || !wfmLoaded || isSweeping;
+  sweepStopBtn.disabled = !isSweeping;
 }
 
 async function connect() {
@@ -211,6 +227,57 @@ async function stop() {
   updateUI();
 }
 
+async function startSweep() {
+  const cf = parseFloat(cfInput.value) * 1e6;
+  const bwMhz = parseFloat(bwInput.value);
+  const cableLoss = parseFloat(cableLossInput.value) || 0;
+  const startPower = parseFloat(sweepStartInput.value);
+  const endPower = parseFloat(sweepEndInput.value);
+  const step = parseFloat(sweepStepInput.value);
+
+  if (isNaN(cf) || isNaN(bwMhz) || bwMhz <= 0) {
+    log("Invalid CF or BW values", "error");
+    return;
+  }
+  if (isNaN(startPower) || isNaN(endPower) || isNaN(step)) {
+    log("Invalid sweep parameters", "error");
+    return;
+  }
+  if (startPower >= endPower) {
+    log("Start power must be less than end power", "error");
+    return;
+  }
+  if (step <= 0) {
+    log("Step must be greater than 0", "error");
+    return;
+  }
+
+  isSweeping = true;
+  updateUI();
+
+  const lossInfo = cableLoss > 0 ? `, CableLoss=${cableLoss} dB` : "";
+  log(`Starting power sweep: ${startPower} → ${endPower} dBm, step=${step} dB${lossInfo}`);
+
+  try {
+    await invoke("power_sweep", { cf, bwMhz, cableLoss, startPower, endPower, step });
+    log("Power sweep completed", "success");
+  } catch (e) {
+    log(`Sweep failed: ${e}`, "error");
+  }
+
+  isSweeping = false;
+  updateUI();
+}
+
+async function stopSweep() {
+  log("Cancelling sweep...");
+  try {
+    await invoke("cancel_sweep");
+  } catch (e) {
+    log(`Cancel failed: ${e}`, "error");
+  }
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   ipInput = document.querySelector("#ip-input")!;
   connectBtn = document.querySelector("#connect-btn")!;
@@ -229,6 +296,11 @@ window.addEventListener("DOMContentLoaded", () => {
   repeatCheck = document.querySelector("#repeat-check")!;
   repeatCountInput = document.querySelector("#repeat-count")!;
   logArea = document.querySelector("#log-area")!;
+  sweepStartInput = document.querySelector("#sweep-start")!;
+  sweepEndInput = document.querySelector("#sweep-end")!;
+  sweepStepInput = document.querySelector("#sweep-step")!;
+  sweepBtn = document.querySelector("#sweep-btn")!;
+  sweepStopBtn = document.querySelector("#sweep-stop-btn")!;
 
   connectBtn.addEventListener("click", connect);
   disconnectBtn.addEventListener("click", disconnect);
@@ -236,6 +308,8 @@ window.addEventListener("DOMContentLoaded", () => {
   exportBtn.addEventListener("click", exportWaveform);
   playBtn.addEventListener("click", play);
   stopBtn.addEventListener("click", stop);
+  sweepBtn.addEventListener("click", startSweep);
+  sweepStopBtn.addEventListener("click", stopSweep);
   repeatCheck.addEventListener("change", () => {
     repeatCountInput.disabled = !repeatCheck.checked;
   });
@@ -276,6 +350,18 @@ window.addEventListener("DOMContentLoaded", () => {
       cfInput.value = firstTd.textContent!.trim();
       channelPopup.classList.remove("show");
     }
+  });
+
+  // Listen for sweep progress events from backend
+  listen<SweepProgress>("sweep-progress", (event) => {
+    const { current_power, step_index, total_steps } = event.payload;
+    const cableLoss = parseFloat(cableLossInput.value) || 0;
+    const txPower = (current_power + cableLoss).toFixed(1);
+    log(`[Sweep] Step ${step_index}/${total_steps}: ${current_power} dBm (TxPower ${txPower} dBm)`);
+  });
+
+  listen("sweep-done", () => {
+    log("[Sweep] Done", "success");
   });
 
   updateUI();

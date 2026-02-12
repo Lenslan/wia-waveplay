@@ -2,8 +2,9 @@ mod scpi;
 mod vsg;
 mod waveform;
 
-use std::sync::Mutex;
-use tauri::State;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use tauri::{AppHandle, Emitter, State};
 use vsg::VsgInstrument;
 use waveform::WaveformInfo;
 
@@ -107,6 +108,90 @@ fn stop_waveform(state: State<Mutex<AppState>>) -> Result<(), String> {
     vsg.stop()
 }
 
+#[derive(Clone, serde::Serialize)]
+struct SweepProgress {
+    current_power: f64,
+    step_index: usize,
+    total_steps: usize,
+}
+
+#[tauri::command]
+fn cancel_sweep(sweep_cancel: State<Arc<AtomicBool>>) {
+    sweep_cancel.store(true, Ordering::SeqCst);
+}
+
+#[tauri::command]
+fn power_sweep(
+    cf: f64,
+    bw_mhz: f64,
+    cable_loss: f64,
+    start_power: f64,
+    end_power: f64,
+    step: f64,
+    app: AppHandle,
+    state: State<Mutex<AppState>>,
+    sweep_cancel: State<Arc<AtomicBool>>,
+) -> Result<(), String> {
+    // Reset cancel flag
+    sweep_cancel.store(false, Ordering::SeqCst);
+    let cancel_flag = Arc::clone(&sweep_cancel);
+
+    let mut app_state = state.lock().map_err(|e| format!("Lock failed: {}", e))?;
+
+    if app_state.vsg.is_none() {
+        return Err("Not connected to instrument".into());
+    }
+    let wfm_data = app_state
+        .wfm_data
+        .clone()
+        .ok_or("No waveform file loaded")?;
+
+    let fs = bw_mhz * 2.0 * 1e6;
+    let vsg = app_state.vsg.as_mut().unwrap();
+
+    // One-time setup: configure, download, create sequence, enable output
+    vsg.prepare_sweep(&wfm_data, "waveform", cf, fs, start_power + cable_loss, 1000)?;
+
+    // Calculate wait time for 1000 repetitions
+    let sample_count = wfm_data.len() / 4;
+    let wfm_duration = sample_count as f64 / fs;
+    let wait_secs = wfm_duration * 1000.0 + 1.0;
+    let wait_duration = std::time::Duration::from_secs_f64(wait_secs);
+
+    // Build list of power steps
+    let mut powers = Vec::new();
+    let mut p = start_power;
+    while p <= end_power + 1e-9 {
+        powers.push(p);
+        p += step;
+    }
+    let total_steps = powers.len();
+
+    for (i, &power) in powers.iter().enumerate() {
+        if cancel_flag.load(Ordering::SeqCst) {
+            break;
+        }
+
+        vsg.set_power(power + cable_loss)?;
+        vsg.trigger()?;
+        std::thread::sleep(wait_duration);
+
+        let _ = app.emit(
+            "sweep-progress",
+            SweepProgress {
+                current_power: power,
+                step_index: i + 1,
+                total_steps,
+            },
+        );
+    }
+
+    vsg.stop()?;
+    let _ = app.emit("sweep-done", ());
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -116,6 +201,7 @@ pub fn run() {
             vsg: None,
             wfm_data: None,
         }))
+        .manage(Arc::new(AtomicBool::new(false)))
         .invoke_handler(tauri::generate_handler![
             connect_instrument,
             disconnect_instrument,
@@ -123,6 +209,8 @@ pub fn run() {
             export_waveform,
             play_waveform,
             stop_waveform,
+            power_sweep,
+            cancel_sweep,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

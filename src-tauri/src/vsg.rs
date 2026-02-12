@@ -111,6 +111,58 @@ impl VsgInstrument {
         self.client.err_check()
     }
 
+    /// Set output power without reconfiguring CF/FS.
+    pub fn set_power(&mut self, amp: f64) -> Result<(), String> {
+        self.client.write_cmd(&format!("power {}", amp))?;
+        self.client.err_check()
+    }
+
+    /// One-time sweep setup: configure CF/FS/power, download wfm, create sequence,
+    /// set trigger mode to bus/single, and enable output.
+    pub fn prepare_sweep(
+        &mut self,
+        wfm_data: &[u8],
+        wfm_id: &str,
+        cf: f64,
+        fs: f64,
+        amp: f64,
+        repeat_count: u32,
+    ) -> Result<(), String> {
+        self.configure(cf, fs, amp)?;
+        self.download_wfm(wfm_data, wfm_id)?;
+
+        let seq_id = format!("seq_{}", wfm_id);
+
+        // Create sequence with specified repeat count
+        self.client.write_cmd(&format!(
+            "radio:arb:sequence \"{}\",\"WFM1:{}\",{},0",
+            seq_id, wfm_id, repeat_count
+        ))?;
+
+        // Select the sequence
+        self.client.write_cmd(&format!(
+            "radio:arb:waveform \"SEQ:{}\"",
+            seq_id
+        ))?;
+
+        // Set trigger to bus/single so we control each burst with *TRG
+        self.client.write_cmd("radio:arb:trigger:source bus")?;
+        self.client.write_cmd("radio:arb:trigger:type single")?;
+
+        // Enable playback chain
+        self.client.write_cmd("radio:arb:state 1")?;
+        self.client.write_cmd("output:modulation 1")?;
+        self.client.write_cmd("output 1")?;
+
+        self.client.err_check()
+    }
+
+    /// Send *TRG to start the prepared sequence.
+    pub fn trigger(&mut self) -> Result<(), String> {
+        self.client.write_cmd("*TRG")?;
+        self.client.err_check()
+    }
+
     /// Stop playback: disable RF output, modulation, and arb state.
     pub fn stop(&mut self) -> Result<(), String> {
         self.client.write_cmd("output 0")?;
