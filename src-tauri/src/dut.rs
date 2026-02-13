@@ -1,4 +1,4 @@
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
 use std::time::Duration;
 
@@ -16,6 +16,7 @@ pub struct DutClient {
 #[derive(Serialize)]
 enum DutCommand {
     ATECmd { cmd: String, args: Vec<String> },
+    ReadMib(String),
 }
 
 #[derive(Deserialize)]
@@ -93,7 +94,13 @@ impl DutClient {
         if resp.is_error {
             Err("DUT returned error".into())
         } else {
-            Ok(line)
+            let size = resp.file_size as usize;
+            let mut text = vec![0u8;size];
+            self.reader.read_exact(&mut text)
+                .map_err(|e| format!("Can not extract string from dut mib:{e}"))?;
+            String::from_utf8_lossy(&text)
+                .parse()
+                .map_err(|e| format!("Can not parse mib text to string:{e}"))
         }
     }
 
@@ -139,12 +146,7 @@ impl DutClient {
 
     pub fn read_mib(&mut self, cf_mhz: u32) -> Result<String, String> {
         let iface = if cf_mhz >= 5000 { "wlan0" } else { "wlan1" };
-        let arg_str = format!("{} fastconfig -R", iface);
-        let args: Vec<String> = arg_str.split(' ').map(|s| s.to_string()).collect();
-        let cmd = DutCommand::ATECmd {
-            cmd: "ate_cmd".into(),
-            args,
-        };
+        let cmd = DutCommand::ReadMib (iface.into());
         self.send_cmd(cmd)?;
         self.read_resp_raw()
     }
